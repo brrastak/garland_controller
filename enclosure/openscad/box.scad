@@ -59,7 +59,7 @@ printDisplayClips     = true;
 pcbLength           = 40; // front to back (X axis)
 pcbWidth            = 25; // side to side (Y axis)
 pcbThickness        = 1.6; 
-standoffHeight      = 2; //-- How much the PCB needs to be raised from the base to leave room for solderings and whatnot
+standoffHeight      = 4; //-- How much the PCB needs to be raised from the base to leave room for solderings and whatnot
 standoffDiameter    = 4;
 standoffPinDiameter = 2;
 standoffHoleSlack   = 0.2;
@@ -118,8 +118,8 @@ lidPlaneThickness   = 1.5;
 //                       + basePlaneThickness
 //-- space between pcb and lidPlane :=
 //--      (bottonWallHeight+lidWallHeight) - (standoffHeight+pcbThickness)
-baseWallHeight      = 7;
-lidWallHeight       = 6;
+baseWallHeight      = 8;
+lidWallHeight       = 5;
 
 //-- ridge where base and lid off box can overlap
 //-- Make sure this isn't less than lidWallHeight
@@ -339,7 +339,7 @@ cutoutsFront =
 
 cutoutsBack = 
 [
-    [pcbWidth/2-5, 0, 10, 4, 1.5, yappRoundedRect]
+    [pcbWidth/2, 2, 10, 4, 1.5, yappRoundedRect, yappCenter]
 ];
 
 cutoutsLeft =   
@@ -348,8 +348,8 @@ cutoutsLeft =
 
 cutoutsRight =  
 [
-    [8, 5, 0, 0, 2, yappCircle],
-    [18, 5, 0, 0, 2, yappCircle]
+    [8, 2, 0, 0, 2, yappCircle, yappCenter],
+    [18, 2, 0, 0, 2, yappCircle, yappCenter]
 ];
 
 
@@ -372,7 +372,10 @@ cutoutsRight =
 snapJoins   =   
 [
     [boxWidth/2, 5, yappFront],
-    [boxLength/2, 5, yappLeft, yappRight]
+    [boxLength/2, 5, yappLeft],
+    [boxLength/3*2, 5, yappRight],
+    [4, 2, yappBack],
+    [23, 2, yappBack]
 ];
 
 //===================================================================
@@ -512,6 +515,8 @@ ridgeExtLeft =
 
 ridgeExtRight =
 [
+    [8, 5, 2, yappCenter],
+    [18, 5, 2, yappCenter]
 ];
 
 ridgeExtFront =
@@ -520,6 +525,7 @@ ridgeExtFront =
 
 ridgeExtBack =
 [
+    [pcbWidth/2, 12, 2, yappCenter]
 ];
 
 
