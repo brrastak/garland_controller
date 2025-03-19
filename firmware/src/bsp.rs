@@ -15,8 +15,7 @@ pub struct Board {
     pub clocks: Clocks,
     pub led: ErasedPin<Output>,
     pub spi: Spi<hal::pac::SPI1, Spi1Remap, (NoSck, NoMiso, Pin<'B', 5, Alternate>), u8>,
-    pub adc_pin: Pin<'A', 0, Analog>,
-    pub adc: Adc<hal::pac::ADC1>,
+    pub adc: AdcWrapper,
 }
 
 impl Board {
@@ -53,8 +52,23 @@ impl Board {
                 3.MHz(),
                 clocks
             ),
-            adc_pin: gpioa.pa0.into_analog(&mut gpioa.crl),
-            adc: Adc::adc1(p.ADC1, clocks)
+            adc: AdcWrapper {
+                adc_instance: Adc::adc1(p.ADC1, clocks),
+                adc_pin: gpioa.pa0.into_analog(&mut gpioa.crl)
+            }
+            
         }
+    }
+}
+
+pub struct AdcWrapper {
+    adc_instance: Adc<hal::pac::ADC1>,
+    adc_pin: Pin<'A', 0, Analog>,
+}
+
+impl AdcWrapper {
+    
+    pub fn read(&mut self) -> u16 {
+        self.adc_instance.read(&mut self.adc_pin).unwrap()
     }
 }

@@ -6,26 +6,29 @@
 use panic_rtt_target as _;
 use rtt_target::rtt_init_print;
 // use rtt_target::rprintln;
-use rtic_monotonics::systick::*;
+use rtic_monotonics::systick::prelude::*;
 use rtic_sync::{channel::*, make_channel};
 use tinyrand::{StdRand, RandRange, Seeded};
 use ws2812_blocking_spi::Ws2812BlockingWriter;
 
-use garland::bsp::{Board, hal};
+systick_monotonic!(Mono, 1000);
+
+use garland::bsp::{AdcWrapper, Board, hal};
 use hal:: {
         gpio::*,
         spi::*,
-        adc::*,
     };
 use garland::garland::{
-    no_pastel,
-    // single_point,
-    triangle_wave,
-    LED_NUMBER,
-    AMPLITUDE,
-    ColorFrame,
-    SmartLedsWrite,
-    RGB8};
+        no_pastel,
+        // single_point,
+        triangle_wave,
+        LED_NUMBER,
+        AMPLITUDE,
+        ColorFrame,
+        SmartLedsWrite,
+        RGB8,
+        Vec
+    };
 use garland::adc_rand_seed::adc_seed;
 
 
@@ -42,8 +45,7 @@ mod app {
     struct Local {
         led: ErasedPin<Output>,
         led_strip: Ws2812BlockingWriter<Spi<hal::pac::SPI1, Spi1Remap, (NoSck, NoMiso, Pin<'B', 5, Alternate>), u8>>,
-        adc_pin: Pin<'A', 0, Analog>,
-        adc: Adc<hal::pac::ADC1>,
+        adc: AdcWrapper,
     }
 
     #[init]
@@ -54,11 +56,9 @@ mod app {
         let board = Board::new(cx.device);
         let led = board.led;
         let led_strip = Ws2812BlockingWriter::new(board.spi);
-        let adc_pin = board.adc_pin;
         let adc = board.adc;
 
-        let systick_token = rtic_monotonics::create_systick_token!();
-        Systick::start(cx.core.SYST, board.clocks.sysclk().to_Hz(), systick_token);
+        Mono::start(cx.core.SYST, board.clocks.sysclk().to_Hz());
 
         let (color_sender, color_receiver) = make_channel!(RGB8, 1);
         let (frame_sender, frame_receiver) = make_channel!(ColorFrame, 1);
@@ -75,7 +75,6 @@ mod app {
             Local {
                led,
                led_strip,
-               adc_pin,
                adc
             },
         )
@@ -92,20 +91,25 @@ mod app {
             
             led.toggle();
 
-            Systick::delay(1000.millis()).await;
+            Mono::delay(1000.millis()).await;
         }
     }
 
     // Generate random RGB color
-    #[task(local = [adc, adc_pin], priority = 1)]
+    #[task(local = [adc], priority = 1)]
     async fn get_new_color(
         cx: get_new_color::Context,
         mut color_sender: Sender<'static, RGB8, 1>)
     {
         let get_new_color::LocalResources
-            {adc, adc_pin, ..} = cx.local;
+            {adc, ..} = cx.local;
 
-        let seed = adc_seed(adc, adc_pin).unwrap();
+        let mut adc_seed_values: Vec<u16, 64> = Vec::new();
+        for value in adc_seed_values.iter_mut() {
+            *value = adc.read();
+        }
+
+        let seed = adc_seed(adc_seed_values);
         let mut rand = StdRand::seed(seed as u64);
 
         loop {
@@ -145,7 +149,7 @@ mod app {
             frame[0] = color_receiver.recv().await.unwrap();
 
             frame_sender.send(frame).await.ok();
-            Systick::delay(80.millis()).await;
+            Mono::delay(80.millis()).await;
         }
     }
 
